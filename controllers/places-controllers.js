@@ -34,6 +34,10 @@ let DUMMY_PLACES = [
   },
 ];
 
+const getAllPlaces = ((req,res,next)=>{
+    return res.status(200).json({places: DUMMY_PLACES})
+})
+
 const getPlaceById = (req, res, next) => {
   const placeId = req.params.placeId;
   const place = DUMMY_PLACES.find((p) => {
@@ -110,6 +114,7 @@ const deletePlace = (req, res, next) => {
     .json({ message: `Item with id: ${placeId} has been deleted` });
 };
 
+exports.getAllPlaces = getAllPlaces
 exports.getPlaceById = getPlaceById;
 exports.getPlacesByUser = getPlacesByUser;
 exports.createPlace = createPlace;
