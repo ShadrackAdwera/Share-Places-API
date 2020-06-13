@@ -1,4 +1,5 @@
 const uuid = require('uuid/v4');
+const { validationResult } = require('express-validator');
 const HttpError = require('../models/http-error');
 
 const USERS = [
@@ -20,13 +21,13 @@ const USERS = [
 
 const SYSTEM_USERS = [
   {
-    id:'u1',  
+    id: 'u1',
     username: 'Matafaka',
     email: 'matafaka@mail.com',
     password: 'matafaka',
   },
   {
-    id:'u2',  
+    id: 'u2',
     username: 'Matafaka',
     email: 'matafaka@mail.com',
     password: 'matafaka',
@@ -50,12 +51,19 @@ const allUsersInSystem = (req, res, next) => {
 };
 
 const signUp = (req, res, next) => {
+  const error = validationResult(req);
+  if (!error.isEmpty()) {
+    throw new HttpError(
+      'Failed! Make sure all values are provided, valid email, username and password(minimum of 6 characters)',
+      400
+    );
+  }
   const { username, email, password } = req.body;
-  const existingEmail = SYSTEM_USERS.find(u=>{
-      return u.email === email
-  })
-  if(existingEmail) {
-      throw new HttpError('Email Exists',422) 
+  const existingEmail = SYSTEM_USERS.find((u) => {
+    return u.email === email;
+  });
+  if (existingEmail) {
+    throw new HttpError('Email Exists', 422);
   }
   const createdUser = {
     id: uuid(),
@@ -67,20 +75,20 @@ const signUp = (req, res, next) => {
   res.status(201).json({ newUser: createdUser });
 };
 
-const logIn = ((req,res,next)=>{
-    const {email,password} = req.body
-    const foundEmail = SYSTEM_USERS.find(u=>{
-        return u.email===email
-    })
+const logIn = (req, res, next) => {
+  const { email, password } = req.body;
+  const foundEmail = SYSTEM_USERS.find((u) => {
+    return u.email === email;
+  });
 
-    if(!foundEmail || foundEmail.password!==password) {
-        throw new HttpError('Authentication failed', 401)
-    }
-    res.status(201).json({message: 'Successfully logged in'})
-})
+  if (!foundEmail || foundEmail.password !== password) {
+    throw new HttpError('Authentication failed', 401);
+  }
+  res.status(201).json({ message: 'Successfully logged in' });
+};
 
 exports.getAllUsers = getAllUsers;
 exports.getUserById = getUserById;
 exports.signUp = signUp;
 exports.allUsersInSystem = allUsersInSystem;
-exports.logIn = logIn
+exports.logIn = logIn;

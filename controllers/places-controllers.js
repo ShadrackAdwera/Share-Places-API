@@ -1,5 +1,6 @@
 const HttpError = require('../models/http-error');
 const uuid = require('uuid/v4');
+const { validationResult } =require('express-validator')
 
 let DUMMY_PLACES = [
   {
@@ -56,6 +57,12 @@ const getPlacesByUser = (req, res, next) => {
 };
 
 const createPlace = (req, res, next) => {
+    const errors = validationResult(req)
+
+    if(!errors.isEmpty()) {
+        throw new HttpError('Bad request, check your values', 400)
+    }
+
   const { title, description, coordinates, address, creator } = req.body;
 
   const createdPlace = {
@@ -73,6 +80,10 @@ const createPlace = (req, res, next) => {
 };
 
 const updatePlaceById = (req, res, next) => {
+    const errors = validationResult(req)
+    if(!errors.isEmpty()) {
+        throw new HttpError('Bad Request, Invalid values', 400)
+    }
   const { title, description } = req.body;
   const placeId = req.params.placeId;
   const updatedPlace = DUMMY_PLACES.find((p) => {
