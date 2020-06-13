@@ -106,6 +106,9 @@ const updatePlaceById = (req, res, next) => {
 
 const deletePlace = (req, res, next) => {
   const placeId = req.params.placeId;
+  if(!DUMMY_PLACES.find(p=>{p.id===placeId})) {
+      throw new HttpError('Place does not exist',404)
+  }
   DUMMY_PLACES = DUMMY_PLACES.filter((p) => {
     return p.id !== placeId;
   });
