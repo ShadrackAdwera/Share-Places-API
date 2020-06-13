@@ -1,6 +1,8 @@
 const HttpError = require('../models/http-error');
 const uuid = require('uuid/v4');
-const { validationResult } =require('express-validator')
+
+const { validationResult } = require('express-validator');
+const getCoordsFromAddress = require('../utils/location')
 
 let DUMMY_PLACES = [
   {
@@ -34,9 +36,9 @@ let DUMMY_PLACES = [
   },
 ];
 
-const getAllPlaces = ((req,res,next)=>{
-    return res.status(200).json({places: DUMMY_PLACES})
-})
+const getAllPlaces = (req, res, next) => {
+  return res.status(200).json({ places: DUMMY_PLACES });
+};
 
 const getPlaceById = (req, res, next) => {
   const placeId = req.params.placeId;
@@ -54,20 +56,28 @@ const getPlacesByUser = (req, res, next) => {
   const places = DUMMY_PLACES.filter((p) => {
     return p.creator === userId;
   });
-  if (!places || places.length===0) {
+  if (!places || places.length === 0) {
     next(new HttpError('Could not find places for the provided user ID', 404));
   }
   res.json({ places });
 };
 
-const createPlace = (req, res, next) => {
-    const errors = validationResult(req)
+const createPlace = async (req, res, next) => {
+  const errors = validationResult(req);
 
-    if(!errors.isEmpty()) {
-        throw new HttpError('Bad request, check your values', 400)
-    }
+  if (!errors.isEmpty()) {
+    next(new HttpError('Bad request, check your values', 400));
+  }
 
-  const { title, description, coordinates, address, creator } = req.body;
+  const { title, description, address, creator } = req.body;
+
+  let coordinates
+  try {
+      coordinates = await getCoordsFromAddress(address) 
+  } catch (error) {
+      return next(error)
+  }
+
 
   const createdPlace = {
     id: uuid(),
@@ -84,10 +94,10 @@ const createPlace = (req, res, next) => {
 };
 
 const updatePlaceById = (req, res, next) => {
-    const errors = validationResult(req)
-    if(!errors.isEmpty()) {
-        throw new HttpError('Bad Request, Invalid values', 400)
-    }
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    throw new HttpError('Bad Request, Invalid values', 400);
+  }
   const { title, description } = req.body;
   const placeId = req.params.placeId;
   const updatedPlace = DUMMY_PLACES.find((p) => {
@@ -106,8 +116,12 @@ const updatePlaceById = (req, res, next) => {
 
 const deletePlace = (req, res, next) => {
   const placeId = req.params.placeId;
-  if(!DUMMY_PLACES.find(p=>{p.id===placeId})) {
-      throw new HttpError('Place does not exist',404)
+  if (
+    !DUMMY_PLACES.find((p) => {
+      p.id === placeId;
+    })
+  ) {
+    throw new HttpError('Place does not exist', 404);
   }
   DUMMY_PLACES = DUMMY_PLACES.filter((p) => {
     return p.id !== placeId;
@@ -117,7 +131,7 @@ const deletePlace = (req, res, next) => {
     .json({ message: `Item with id: ${placeId} has been deleted` });
 };
 
-exports.getAllPlaces = getAllPlaces
+exports.getAllPlaces = getAllPlaces;
 exports.getPlaceById = getPlaceById;
 exports.getPlacesByUser = getPlacesByUser;
 exports.createPlace = createPlace;

@@ -1,10 +1,10 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+require('dotenv').config()
 
 const placesRoutes = require('./routes/places-routes');
 const userRoutes = require('./routes/users-routes');
 const HttpError = require('./models/http-error')
-
 
 const app = express();
 
