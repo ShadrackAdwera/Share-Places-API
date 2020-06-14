@@ -2,38 +2,6 @@ const { validationResult } = require('express-validator');
 const HttpError = require('../models/http-error');
 const User = require('../models/user');
 
-const USERS = [
-  {
-    id: 'u1',
-    name: 'Adwesh',
-    image:
-      'https://images.unsplash.com/photo-1591641079589-be6c042ccdf4?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=634&q=80',
-    places: 3,
-  },
-  {
-    id: 'u2',
-    name: 'Deez Nuts',
-    image:
-      'https://images.unsplash.com/photo-1591641079589-be6c042ccdf4?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=634&q=80',
-    places: 3,
-  },
-];
-
-const SYSTEM_USERS = [
-  {
-    id: 'u1',
-    username: 'Matafaka',
-    email: 'matafaka@mail.com',
-    password: 'matafaka',
-  },
-  {
-    id: 'u2',
-    username: 'Matafaka',
-    email: 'matafaka@mail.com',
-    password: 'matafaka',
-  },
-];
-
 const getAllUsers = async (req, res, next) => {
   let users
   try {
