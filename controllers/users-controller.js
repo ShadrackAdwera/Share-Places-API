@@ -35,7 +35,13 @@ const SYSTEM_USERS = [
 ];
 
 const getAllUsers = async (req, res, next) => {
-  const users = await User.find().exec()
+  let users
+  try {
+    users = await User.find({},'-password').exec()
+  } catch (error) {
+    const err = new HttpError('Something went wrong, try again', 500)
+    return next(err)
+  }
   res.status(200).json({users: users.map(user=>user.toObject({getters:true}))})
 };
 
@@ -55,7 +61,7 @@ const signUp = async (req, res, next) => {
       400
     ));
   }
-  const { username, email, password, places } = req.body;
+  const { username, email, password } = req.body;
 
   let existingUser;
   try {
@@ -76,7 +82,7 @@ const signUp = async (req, res, next) => {
     password,
     image:
       'https://images.unsplash.com/photo-1591452713369-20693cd80184?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1900&q=80',
-    places,
+    places:[],
   });
 
   try {
