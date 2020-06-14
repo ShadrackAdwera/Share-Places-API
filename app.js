@@ -1,5 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const mongoose = require('mongoose')
 require('dotenv').config()
 
 const placesRoutes = require('./routes/places-routes');
@@ -27,4 +28,9 @@ app.use((error, req, res, next) => {
     .json({ message: error.message || 'An error occurred' });
 });
 
-app.listen(5000);
+mongoose.connect(`mongodb+srv://adwera:${process.env.MONGO_PWD}@cluster0-dska4.mongodb.net/places?retryWrites=true&w=majority`).then(()=>{
+  app.listen(5000);
+}).catch(error=>{
+  console.log(error)
+})
+
