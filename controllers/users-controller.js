@@ -1,4 +1,3 @@
-const uuid = require('uuid/v4');
 const { validationResult } = require('express-validator');
 const HttpError = require('../models/http-error');
 const User = require('../models/user');
@@ -65,7 +64,7 @@ const signUp = async (req, res, next) => {
   try {
     existingUser = await User.findOne({ email: email });
   } catch (error) {
-    const err = new HttpError('An error occurred, try again', err);
+    const err = new HttpError('An error occurred, try again', 500);
     return next(err);
   }
 
@@ -93,14 +92,19 @@ const signUp = async (req, res, next) => {
   res.status(201).json({ newUser: createdUser.toObject({ getters: true }) });
 };
 
-const logIn = (req, res, next) => {
+const logIn = async (req, res, next) => {
   const { email, password } = req.body;
-  const foundEmail = SYSTEM_USERS.find((u) => {
-    return u.email === email;
-  });
 
-  if (!foundEmail || foundEmail.password !== password) {
-    throw new HttpError('Authentication failed', 401);
+  let existingUser;
+  try {
+    existingUser = await User.findOne({ email: email });
+  } catch (error) {
+    const err = new HttpError('Login failed, try again', 500);
+    return next(err);
+  }
+
+  if(!existingUser || existingUser.password!=password){
+    return next(new HttpError('Invalid credentials',401))
   }
   res.status(201).json({ message: 'Successfully logged in' });
 };
