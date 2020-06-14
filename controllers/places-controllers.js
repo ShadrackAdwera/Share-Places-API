@@ -118,7 +118,7 @@ const createPlace = async (req, res, next) => {
 const updatePlaceById = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    throw new HttpError('Bad Request, Invalid values', 400);
+    return next(new HttpError('Bad Request, Invalid values', 400));
   }
   const { title, description } = req.body;
   const placeId = req.params.placeId;

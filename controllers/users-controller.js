@@ -1,6 +1,7 @@
 const uuid = require('uuid/v4');
 const { validationResult } = require('express-validator');
 const HttpError = require('../models/http-error');
+const User = require('../models/user');
 
 const USERS = [
   {
@@ -50,29 +51,46 @@ const allUsersInSystem = (req, res, next) => {
   res.status(200).json({ users: SYSTEM_USERS });
 };
 
-const signUp = (req, res, next) => {
+const signUp = async (req, res, next) => {
   const error = validationResult(req);
   if (!error.isEmpty()) {
-    throw new HttpError(
+    return next(new HttpError(
       'Failed! Make sure all values are provided, valid email, username and password(minimum of 6 characters)',
       400
-    );
+    ));
   }
-  const { username, email, password } = req.body;
-  const existingEmail = SYSTEM_USERS.find((u) => {
-    return u.email === email;
-  });
-  if (existingEmail) {
-    throw new HttpError('Email Exists', 422);
+  const { username, email, password, places } = req.body;
+
+  let existingUser;
+  try {
+    existingUser = await User.findOne({ email: email });
+  } catch (error) {
+    const err = new HttpError('An error occurred, try again', err);
+    return next(err);
   }
-  const createdUser = {
-    id: uuid(),
+
+  if (existingUser) {
+    const error = new HttpError('User exists, try logging in', 422);
+    return next(error);
+  }
+
+  const createdUser = new User({
     username,
     email,
     password,
-  };
-  SYSTEM_USERS.push(createdUser);
-  res.status(201).json({ newUser: createdUser });
+    image:
+      'https://images.unsplash.com/photo-1591452713369-20693cd80184?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1900&q=80',
+    places,
+  });
+
+  try {
+    await createdUser.save();
+  } catch (error) {
+    const err = new HttpError('Task failed, try again', 422);
+    return next(err);
+  }
+
+  res.status(201).json({ newUser: createdUser.toObject({ getters: true }) });
 };
 
 const logIn = (req, res, next) => {
