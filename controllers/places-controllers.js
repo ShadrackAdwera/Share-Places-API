@@ -1,8 +1,9 @@
-const HttpError = require('../models/http-error');
-
+const mongoose = require('mongoose');
 const { validationResult } = require('express-validator');
 const getCoordsFromAddress = require('../utils/location');
 const Place = require('../models/place');
+const User = require('../models/user');
+const HttpError = require('../models/http-error');
 
 let DUMMY_PLACES = [
   {
@@ -106,13 +107,32 @@ const createPlace = async (req, res, next) => {
     creator,
   });
 
+  let user;
+
   try {
-    await createdPlace.save();
+    user = await User.findById(creator);
+  } catch (error) {
+    const err = new HttpError('Failed to save plave', 500);
+    return next(err);
+  }
+
+  if (!user) {
+    const error = new HttpError('User dont exist', 404);
+    return next(error);
+  }
+
+  try {
+    const sessn = await mongoose.startSession();
+    sessn.startTransaction();
+    await createdPlace.save({ session: sessn });
+    user.places.push(createdPlace);
+    await user.save({ session: sessn });
+    await sessn.commitTransaction();
   } catch (err) {
     const error = new HttpError('Failed to save plave', 500);
     return next(error);
   }
-  res.status(201).json({ createdPlace });
+  res.status(201).json({ createdPlace: createdPlace.toObject({getters:true}) });
 };
 
 const updatePlaceById = async (req, res, next) => {
@@ -144,18 +164,18 @@ const updatePlaceById = async (req, res, next) => {
 
 const deletePlace = async (req, res, next) => {
   const placeId = req.params.placeId;
-  let place
+  let place;
   try {
-   place = await Place.findById(placeId).exec()
+    place = await Place.findById(placeId).exec();
   } catch (error) {
-    const err = new HttpError('Something went wrong, try again', 500)
-    return next(err)
+    const err = new HttpError('Something went wrong, try again', 500);
+    return next(err);
   }
   try {
-    await place.remove()
+    await place.remove();
   } catch (error) {
-    const err = new HttpError('Something went wrong, try again', 500)
-    return next(err)
+    const err = new HttpError('Something went wrong, try again', 500);
+    return next(err);
   }
   res
     .status(200)
