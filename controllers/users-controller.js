@@ -34,8 +34,9 @@ const SYSTEM_USERS = [
   },
 ];
 
-const getAllUsers = (req, res, next) => {
-  res.status(200).json({ users: USERS });
+const getAllUsers = async (req, res, next) => {
+  const users = await User.find().exec()
+  res.status(200).json({users: users.map(user=>user.toObject({getters:true}))})
 };
 
 const getUserById = (req, res, next) => {
@@ -44,10 +45,6 @@ const getUserById = (req, res, next) => {
     return u.id === userId;
   });
   res.status(200).json({ user });
-};
-
-const allUsersInSystem = (req, res, next) => {
-  res.status(200).json({ users: SYSTEM_USERS });
 };
 
 const signUp = async (req, res, next) => {
@@ -112,5 +109,4 @@ const logIn = async (req, res, next) => {
 exports.getAllUsers = getAllUsers;
 exports.getUserById = getUserById;
 exports.signUp = signUp;
-exports.allUsersInSystem = allUsersInSystem;
 exports.logIn = logIn;
