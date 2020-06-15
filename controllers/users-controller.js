@@ -25,7 +25,7 @@ const signUp = async (req, res, next) => {
   const error = validationResult(req);
   if (!error.isEmpty()) {
     return next(new HttpError(
-      'Failed! Make sure all values are provided, valid email, username and password(minimum of 6 characters)',
+      'Failed! Make sure all values are provided, including the image',
       400
     ));
   }
@@ -48,8 +48,7 @@ const signUp = async (req, res, next) => {
     username,
     email,
     password,
-    image:
-      'https://images.unsplash.com/photo-1591452713369-20693cd80184?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1900&q=80',
+    image: req.file.path,
     places:[],
   });
 
