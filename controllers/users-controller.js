@@ -1,17 +1,20 @@
 const { validationResult } = require('express-validator');
-const bcrypt = require('bcryptjs')
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const HttpError = require('../models/http-error');
 const User = require('../models/user');
 
 const getAllUsers = async (req, res, next) => {
-  let users
+  let users;
   try {
-    users = await User.find({},'-password').exec()
+    users = await User.find({}, '-password').exec();
   } catch (error) {
-    const err = new HttpError('Something went wrong, try again', 500)
-    return next(err)
+    const err = new HttpError('Something went wrong, try again', 500);
+    return next(err);
   }
-  res.status(200).json({users: users.map(user=>user.toObject({getters:true}))})
+  res
+    .status(200)
+    .json({ users: users.map((user) => user.toObject({ getters: true })) });
 };
 
 const getUserById = (req, res, next) => {
@@ -25,10 +28,12 @@ const getUserById = (req, res, next) => {
 const signUp = async (req, res, next) => {
   const error = validationResult(req);
   if (!error.isEmpty()) {
-    return next(new HttpError(
-      'Failed! Make sure all values are provided, including the image',
-      400
-    ));
+    return next(
+      new HttpError(
+        'Failed! Make sure all values are provided, including the image',
+        400
+      )
+    );
   }
   const { username, email, password } = req.body;
 
@@ -45,12 +50,12 @@ const signUp = async (req, res, next) => {
     return next(error);
   }
 
-  let hashedPassword
+  let hashedPassword;
   try {
-    hashedPassword = bcrypt.hash(password, 12)
+    hashedPassword = bcrypt.hash(password, 12);
   } catch (error) {
-    const error = new HttpError('Could not create user',500)
-    return next(error)
+    const error = new HttpError('Could not create user', 500);
+    return next(error);
   }
 
   const createdUser = new User({
@@ -58,7 +63,7 @@ const signUp = async (req, res, next) => {
     email,
     password: hashedPassword,
     image: req.file.path,
-    places:[],
+    places: [],
   });
 
   try {
@@ -67,6 +72,16 @@ const signUp = async (req, res, next) => {
     const err = new HttpError('Task failed, try again', 422);
     return next(err);
   }
+
+  let token;
+
+  try {
+    token = jwt.sign(
+      { userId: createdUser.id, email: createdUser.email },
+      'likon_deez_nuts',
+      { expiresIn: 900 }
+    );
+  } catch (error) {}
 
   res.status(201).json({ newUser: createdUser.toObject({ getters: true }) });
 };
@@ -82,23 +97,28 @@ const logIn = async (req, res, next) => {
     return next(err);
   }
 
-  if(!existingUser){
-    return next(new HttpError('Invalid credentials',401))
+  if (!existingUser) {
+    return next(new HttpError('Invalid credentials', 401));
   }
 
-  let isValidPassword = false
+  let isValidPassword = false;
   try {
-    isValidPassword = await bcrypt.compare(password, existingUser.password)
+    isValidPassword = await bcrypt.compare(password, existingUser.password);
   } catch (error) {
-    const error = new HttpError('Login Failed, try again',500)
-    return next(error)
+    const error = new HttpError('Login Failed, try again', 500);
+    return next(error);
   }
 
-  if(!isValidPassword) {
-    return next(new HttpError('Invalid credentials',401))
+  if (!isValidPassword) {
+    return next(new HttpError('Invalid credentials', 401));
   }
 
-  res.status(201).json({ message: 'Successfully logged in', user: existingUser.toObject({getters:true}) });
+  res
+    .status(201)
+    .json({
+      message: 'Successfully logged in',
+      user: existingUser.toObject({ getters: true }),
+    });
 };
 
 exports.getAllUsers = getAllUsers;
