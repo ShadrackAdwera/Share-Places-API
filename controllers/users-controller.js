@@ -35,7 +35,7 @@ const signUp = async (req, res, next) => {
       )
     );
   }
-  const { username, email, password } = req.body;
+  const { name, email, password } = req.body;
 
   let existingUser;
   try {
@@ -52,14 +52,14 @@ const signUp = async (req, res, next) => {
 
   let hashedPassword;
   try {
-    hashedPassword = bcrypt.hash(password, 12);
+    hashedPassword = await bcrypt.hash(password, 12);
   } catch (error) {
     const err = new HttpError('Could not create user', 500);
     return next(err);
   }
 
   const createdUser = new User({
-    username,
+    name,
     email,
     password: hashedPassword,
     image: req.file.path,
@@ -69,7 +69,7 @@ const signUp = async (req, res, next) => {
   try {
     await createdUser.save();
   } catch (error) {
-    const err = new HttpError('Sign up failed, try again', 422);
+    const err = new HttpError('Sign up failed... try again', 422);
     return next(err);
   }
 
@@ -101,7 +101,7 @@ const logIn = async (req, res, next) => {
   }
 
   if (!existingUser) {
-    return next(new HttpError('Invalid credentials', 401));
+    return next(new HttpError('Invalid credentials', 403));
   }
 
   let isValidPassword = false;
@@ -113,13 +113,13 @@ const logIn = async (req, res, next) => {
   }
 
   if (!isValidPassword) {
-    return next(new HttpError('Invalid credentials', 401));
+    return next(new HttpError('Invalid credentials', 403));
   }
 
   let token
 
   try {
-    jwt.sign({userId: existingUser.id, email: existingUser.email}, 'likon_deez_nuts', {expiresIn: 900})
+   token = jwt.sign({userId: existingUser.id, email: existingUser.email}, 'likon_deez_nuts', {expiresIn: 900})
   } catch (error) {
     const err = new HttpError('Login failed, try again', 500);
     return next(err);

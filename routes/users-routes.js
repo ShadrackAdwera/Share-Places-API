@@ -14,7 +14,7 @@ router.post(
   '/signup',
   fileUpload.single('image'),
   [
-    check('username').not().isEmpty(),
+    check('name').not().isEmpty(),
     check('email').normalizeEmail().isEmail(),
     check('password').isLength({ min: 6 }),
   ],
