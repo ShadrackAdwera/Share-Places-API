@@ -5,7 +5,6 @@ const Place = require('../models/place');
 const User = require('../models/user');
 const HttpError = require('../models/http-error');
 
-
 const getAllPlaces = async (req, res, next) => {
   const places = await Place.find().exec();
   res.status(200).json({ places });
@@ -69,8 +68,7 @@ const createPlace = async (req, res, next) => {
   const createdPlace = new Place({
     title,
     description,
-    image:
-      'https://images.unsplash.com/photo-1550664890-c5e34a6cad31?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1950&q=80',
+    image: req.file.path,
     location: coordinates,
     address,
     creator,
@@ -101,7 +99,9 @@ const createPlace = async (req, res, next) => {
     const error = new HttpError('Failed to save plave', 500);
     return next(error);
   }
-  res.status(201).json({ createdPlace: createdPlace.toObject({getters:true}) });
+  res
+    .status(201)
+    .json({ createdPlace: createdPlace.toObject({ getters: true }) });
 };
 
 const updatePlaceById = async (req, res, next) => {
@@ -141,17 +141,17 @@ const deletePlace = async (req, res, next) => {
     return next(err);
   }
 
-  if(!place){
-    return next(new HttpError('Place for the provided ID doesnt exist',404))
+  if (!place) {
+    return next(new HttpError('Place for the provided ID doesnt exist', 404));
   }
 
   try {
-    const sessn = await mongoose.startSession()
-    sessn.startTransaction()
-    await place.remove({session: sessn})
-    place.creator.places.pull(place)
-    await place.creator.save({session: sessn})
-    await sessn.commitTransaction()
+    const sessn = await mongoose.startSession();
+    sessn.startTransaction();
+    await place.remove({ session: sessn });
+    place.creator.places.pull(place);
+    await place.creator.save({ session: sessn });
+    await sessn.commitTransaction();
   } catch (error) {
     const err = new HttpError('Something went wrong, try again', 500);
     return next(err);
