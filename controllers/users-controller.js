@@ -54,8 +54,8 @@ const signUp = async (req, res, next) => {
   try {
     hashedPassword = bcrypt.hash(password, 12);
   } catch (error) {
-    const error = new HttpError('Could not create user', 500);
-    return next(error);
+    const err = new HttpError('Could not create user', 500);
+    return next(err);
   }
 
   const createdUser = new User({
@@ -69,7 +69,7 @@ const signUp = async (req, res, next) => {
   try {
     await createdUser.save();
   } catch (error) {
-    const err = new HttpError('Task failed, try again', 422);
+    const err = new HttpError('Sign up failed, try again', 422);
     return next(err);
   }
 
@@ -81,9 +81,12 @@ const signUp = async (req, res, next) => {
       'likon_deez_nuts',
       { expiresIn: 900 }
     );
-  } catch (error) {}
+  } catch (error) {
+    const err = new HttpError('Sign up failed, try again', 422);
+    return next(err);
+  }
 
-  res.status(201).json({ newUser: createdUser.toObject({ getters: true }) });
+  res.status(201).json({ userId: createdUser.id, email: createdUser.email, token: token });
 };
 
 const logIn = async (req, res, next) => {
@@ -105,19 +108,29 @@ const logIn = async (req, res, next) => {
   try {
     isValidPassword = await bcrypt.compare(password, existingUser.password);
   } catch (error) {
-    const error = new HttpError('Login Failed, try again', 500);
-    return next(error);
+    const err = new HttpError('Login Failed, try again', 500);
+    return next(err);
   }
 
   if (!isValidPassword) {
     return next(new HttpError('Invalid credentials', 401));
   }
 
+  let token
+
+  try {
+    jwt.sign({userId: existingUser.id, email: existingUser.email}, 'likon_deez_nuts', {expiresIn: 900})
+  } catch (error) {
+    const err = new HttpError('Login failed, try again', 500);
+    return next(err);
+  }
+
   res
     .status(201)
     .json({
-      message: 'Successfully logged in',
-      user: existingUser.toObject({ getters: true }),
+      userId: existingUser.id,
+      email: existingUser.email,
+      token: token
     });
 };
 
