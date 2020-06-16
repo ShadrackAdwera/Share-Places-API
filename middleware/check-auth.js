@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+
 const HttpError = require('../models/http-error');
 
 module.exports = (req, res, next) => {
@@ -6,15 +7,15 @@ module.exports = (req, res, next) => {
     return next();
   }
   try {
-    const token = req.headers.authorization.split(' ')[1];
+    const token = req.headers.authorization.split(' ')[1]; // Authorization: 'Bearer TOKEN'
     if (!token) {
-      throw new Error('Auth failed!');
+      throw new Error('Authentication failed!');
     }
     const decodedToken = jwt.verify(token, process.env.JWT_KEY);
-    next();
     req.userData = { userId: decodedToken.userId };
-  } catch (error) {
-    const err = new HttpError('Auth Failed', 403);
-    return next(err);
+    next();
+  } catch (err) {
+    const error = new HttpError('Authentication failed!', 403);
+    return next(error);
   }
 };
