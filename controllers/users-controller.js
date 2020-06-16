@@ -1,41 +1,20 @@
-const uuid = require('uuid/v4');
 const { validationResult } = require('express-validator');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const HttpError = require('../models/http-error');
+const User = require('../models/user');
 
-const USERS = [
-  {
-    id: 'u1',
-    name: 'Adwesh',
-    image:
-      'https://images.unsplash.com/photo-1591641079589-be6c042ccdf4?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=634&q=80',
-    places: 3,
-  },
-  {
-    id: 'u2',
-    name: 'Deez Nuts',
-    image:
-      'https://images.unsplash.com/photo-1591641079589-be6c042ccdf4?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=634&q=80',
-    places: 3,
-  },
-];
-
-const SYSTEM_USERS = [
-  {
-    id: 'u1',
-    username: 'Matafaka',
-    email: 'matafaka@mail.com',
-    password: 'matafaka',
-  },
-  {
-    id: 'u2',
-    username: 'Matafaka',
-    email: 'matafaka@mail.com',
-    password: 'matafaka',
-  },
-];
-
-const getAllUsers = (req, res, next) => {
-  res.status(200).json({ users: USERS });
+const getAllUsers = async (req, res, next) => {
+  let users;
+  try {
+    users = await User.find({}, '-password').exec();
+  } catch (error) {
+    const err = new HttpError('Something went wrong, try again', 500);
+    return next(err);
+  }
+  res
+    .status(200)
+    .json({ users: users.map((user) => user.toObject({ getters: true })) });
 };
 
 const getUserById = (req, res, next) => {
@@ -46,49 +25,116 @@ const getUserById = (req, res, next) => {
   res.status(200).json({ user });
 };
 
-const allUsersInSystem = (req, res, next) => {
-  res.status(200).json({ users: SYSTEM_USERS });
-};
-
-const signUp = (req, res, next) => {
+const signUp = async (req, res, next) => {
   const error = validationResult(req);
   if (!error.isEmpty()) {
-    throw new HttpError(
-      'Failed! Make sure all values are provided, valid email, username and password(minimum of 6 characters)',
-      400
+    return next(
+      new HttpError(
+        'Failed! Make sure all values are provided, including the image',
+        400
+      )
     );
   }
-  const { username, email, password } = req.body;
-  const existingEmail = SYSTEM_USERS.find((u) => {
-    return u.email === email;
-  });
-  if (existingEmail) {
-    throw new HttpError('Email Exists', 422);
+  const { name, email, password } = req.body;
+
+  let existingUser;
+  try {
+    existingUser = await User.findOne({ email: email });
+  } catch (error) {
+    const err = new HttpError('An error occurred, try again', 500);
+    return next(err);
   }
-  const createdUser = {
-    id: uuid(),
-    username,
+
+  if (existingUser) {
+    const error = new HttpError('User exists, try logging in', 422);
+    return next(error);
+  }
+
+  let hashedPassword;
+  try {
+    hashedPassword = await bcrypt.hash(password, 12);
+  } catch (error) {
+    const err = new HttpError('Could not create user', 500);
+    return next(err);
+  }
+
+  const createdUser = new User({
+    name,
     email,
-    password,
-  };
-  SYSTEM_USERS.push(createdUser);
-  res.status(201).json({ newUser: createdUser });
+    password: hashedPassword,
+    image: req.file.path,
+    places: [],
+  });
+
+  try {
+    await createdUser.save();
+  } catch (error) {
+    const err = new HttpError('Sign up failed... try again', 422);
+    return next(err);
+  }
+
+  let token;
+
+  try {
+    token = jwt.sign(
+      { userId: createdUser.id, email: createdUser.email },
+      process.env.JWT_KEY,
+      { expiresIn: 900 }
+    );
+  } catch (error) {
+    const err = new HttpError('Sign up failed, try again', 422);
+    return next(err);
+  }
+
+  res.status(201).json({ userId: createdUser.id, email: createdUser.email, token: token });
 };
 
-const logIn = (req, res, next) => {
+const logIn = async (req, res, next) => {
   const { email, password } = req.body;
-  const foundEmail = SYSTEM_USERS.find((u) => {
-    return u.email === email;
-  });
 
-  if (!foundEmail || foundEmail.password !== password) {
-    throw new HttpError('Authentication failed', 401);
+  let existingUser;
+  try {
+    existingUser = await User.findOne({ email: email });
+  } catch (error) {
+    const err = new HttpError('Login failed, try again', 500);
+    return next(err);
   }
-  res.status(201).json({ message: 'Successfully logged in' });
+
+  if (!existingUser) {
+    return next(new HttpError('Invalid credentials', 403));
+  }
+
+  let isValidPassword = false;
+  try {
+    isValidPassword = await bcrypt.compare(password, existingUser.password);
+  } catch (error) {
+    const err = new HttpError('Login Failed, try again', 500);
+    return next(err);
+  }
+
+  if (!isValidPassword) {
+    return next(new HttpError('Invalid credentials, try again', 403));
+  }
+
+  let token
+
+  try {
+   token = jwt.sign({userId: existingUser.id, email: existingUser.email}, process.env.JWT_KEY, {expiresIn: 900})
+  } catch (error) {
+    const err = new HttpError('Login failed, please try again', 500);
+    return next(err);
+  }
+
+  res
+    .status(201)
+    .json({
+      userId: existingUser.id,
+      email: existingUser.email,
+      token: token
+    });
 };
 
 exports.getAllUsers = getAllUsers;
 exports.getUserById = getUserById;
 exports.signUp = signUp;
-exports.allUsersInSystem = allUsersInSystem;
 exports.logIn = logIn;
