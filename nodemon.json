@@ -1,0 +1,9 @@
+{
+    "env": {
+        "DB_USER":"adwera",
+        "DB_PASSWORD":"TOfIlRi3dWl4yxiu",
+        "DB_NAME":"places",
+        "GOOGLE_API_KEY":"AIzaSyBpowEp7oQEYtDHBRVc668Jt1iabhMcVA4",
+        "JWT_KEY": "likon_deez_nuts"
+    }
+}
