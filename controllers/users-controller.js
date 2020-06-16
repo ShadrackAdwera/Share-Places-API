@@ -113,7 +113,7 @@ const logIn = async (req, res, next) => {
   }
 
   if (!isValidPassword) {
-    return next(new HttpError('Invalid credentials', 403));
+    return next(new HttpError('Invalid credentials, try again', 403));
   }
 
   let token
@@ -121,7 +121,7 @@ const logIn = async (req, res, next) => {
   try {
    token = jwt.sign({userId: existingUser.id, email: existingUser.email}, process.env.JWT_KEY, {expiresIn: 900})
   } catch (error) {
-    const err = new HttpError('Login failed, try again', 500);
+    const err = new HttpError('Login failed, please try again', 500);
     return next(err);
   }
 
